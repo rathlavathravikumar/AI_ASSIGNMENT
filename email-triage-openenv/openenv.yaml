@@ -1,0 +1,185 @@
+name: email-triage
+version: "1.0.0"
+description: >
+  A real-world email triage environment where AI agents must classify, prioritize,
+  flag, archive, delete, and reply to workplace emails. Three tasks of increasing
+  difficulty test different aspects of email management: basic classification,
+  full inbox zero triage, and executive-level multi-criteria email handling.
+author: Rathlavath Ravi
+tags:
+  - openenv
+  - email
+  - triage
+  - nlp
+  - productivity
+  - real-world
+
+environment:
+  type: rest_api
+  base_url: "http://localhost:7860"
+  reset_endpoint: "/reset"
+  step_endpoint: "/step"
+  state_endpoint: "/state"
+
+observation_space:
+  type: object
+  properties:
+    task_id:
+      type: string
+      description: Identifier of the current task
+    task_description:
+      type: string
+      description: Natural language description of the task objective
+    difficulty:
+      type: string
+      enum: [easy, medium, hard]
+    inbox:
+      type: array
+      description: List of Email objects in the inbox
+      items:
+        type: object
+        properties:
+          id: {type: string}
+          subject: {type: string}
+          sender: {type: string}
+          sender_email: {type: string}
+          body: {type: string}
+          timestamp: {type: string}
+          thread_id: {type: string, nullable: true}
+          is_read: {type: boolean}
+          labels: {type: array, items: {type: string}}
+          attachments: {type: array, items: {type: string}}
+    step_count:
+      type: integer
+      description: Number of steps taken so far
+    max_steps:
+      type: integer
+      description: Maximum allowed steps
+    classifications:
+      type: object
+      description: Map of email_id to classification results
+    flagged:
+      type: object
+      description: Map of email_id to flag_type
+    archived:
+      type: array
+      items: {type: string}
+      description: List of archived email IDs
+    deleted:
+      type: array
+      items: {type: string}
+      description: List of deleted email IDs
+    replies:
+      type: object
+      description: Map of email_id to drafted reply body
+    total_reward:
+      type: number
+      description: Cumulative reward accumulated so far
+    done:
+      type: boolean
+      description: Whether the episode has ended
+    message:
+      type: string
+      description: Feedback message from the last action
+
+action_space:
+  type: object
+  required: [action_type]
+  properties:
+    action_type:
+      type: string
+      enum: [classify, archive, delete, flag, reply, mark_read, search, done]
+    email_id:
+      type: string
+      description: Target email ID (required for most actions)
+    priority:
+      type: string
+      enum: [urgent, normal, low]
+      description: Required for classify action
+    category:
+      type: string
+      enum: [work, personal, spam, newsletter, finance, support]
+      description: Required for classify action
+    flag_type:
+      type: string
+      enum: [urgent, follow_up, waiting, action_required]
+      description: Required for flag action
+    reply_body:
+      type: string
+      description: Reply text (required for reply action, min 10 chars)
+    search_query:
+      type: string
+      description: Search keyword (required for search action)
+
+reward:
+  type: number
+  range: [-0.10, 0.20]
+  description: >
+    Incremental reward per step.
+    Correct action: +0.08
+    Correct classification: +0.04
+    Correct flag type: +0.02
+    Invalid action: -0.02
+    Repeated/loop action: -0.05
+    Deleting important email: -0.05
+    Task completion bonus: +0.10 + 0.20 * final_score
+    Max steps exceeded: -0.10
+
+tasks:
+  - id: task_1
+    name: "Priority Inbox Classifier"
+    difficulty: easy
+    num_emails: 10
+    max_steps: 40
+    description: >
+      Classify 10 diverse emails by priority (urgent/normal/low) and category
+      (work/personal/spam/newsletter/finance/support). Additionally flag emails
+      that require immediate attention and identify which need replies.
+    scoring:
+      priority_accuracy: 0.30
+      category_accuracy: 0.35
+      flag_accuracy: 0.20
+      reply_accuracy: 0.15
+    baseline_score: 0.41
+
+  - id: task_2
+    name: "Inbox Zero Challenge"
+    difficulty: medium
+    num_emails: 20
+    max_steps: 80
+    description: >
+      Process 20 emails to achieve Inbox Zero. Take the correct action for each:
+      delete spam, archive newsletters and low-value emails, flag urgent/action-required
+      work items, and classify all emails with correct priority and category.
+    scoring:
+      action_accuracy: 0.40
+      priority_accuracy: 0.20
+      category_accuracy: 0.25
+      coverage: 0.15
+    baseline_score: 0.35
+
+  - id: task_3
+    name: "Executive Assistant Email Management"
+    difficulty: hard
+    num_emails: 20
+    max_steps: 100
+    description: >
+      Act as an AI executive assistant managing a CEO's inbox. Handle email threads
+      coherently, detect and archive duplicate/FYI emails, flag emails requiring executive
+      action with correct urgency, identify emails needing drafted replies, and classify
+      all emails accurately.
+    scoring:
+      thread_management: 0.20
+      duplicate_detection: 0.10
+      action_accuracy: 0.40
+      reply_identification: 0.15
+      classification_accuracy: 0.15
+    baseline_score: 0.28
+
+baseline:
+  model: meta-llama/Llama-3.1-8B-Instruct
+  average_score: 0.35
+  task_scores:
+    task_1: 0.41
+    task_2: 0.35
+    task_3: 0.28
