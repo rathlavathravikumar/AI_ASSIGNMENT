@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +48,8 @@ class ActionType(str, Enum):
 # ---------------------------------------------------------------------------
 
 class Email(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     id: str
     subject: str
     sender: str
@@ -59,19 +61,15 @@ class Email(BaseModel):
     labels: List[str] = Field(default_factory=list)
     attachments: List[str] = Field(default_factory=list)
 
-    class Config:
-        use_enum_values = True
-
 
 class EmailClassification(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     email_id: str
     priority: Priority
     category: Category
     flag: Optional[FlagType] = None
     requires_reply: bool = False
-
-    class Config:
-        use_enum_values = True
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +78,7 @@ class EmailClassification(BaseModel):
 
 class Action(BaseModel):
     """Typed action that an agent sends to the environment."""
+    model_config = ConfigDict(use_enum_values=True)
 
     action_type: ActionType
 
@@ -101,9 +100,6 @@ class Action(BaseModel):
     # snooze (hours)
     snooze_hours: Optional[int] = None
 
-    class Config:
-        use_enum_values = True
-
 
 # ---------------------------------------------------------------------------
 # Observation model (what the agent receives)
@@ -111,6 +107,7 @@ class Action(BaseModel):
 
 class Observation(BaseModel):
     """Full observable state returned after every step."""
+    model_config = ConfigDict(use_enum_values=True)
 
     task_id: str
     task_description: str
@@ -121,7 +118,7 @@ class Observation(BaseModel):
     max_steps: int
 
     # accumulated results
-    classifications: Dict[str, EmailClassification] = Field(default_factory=dict)
+    classifications: Dict[str, Any] = Field(default_factory=dict)
     flagged: Dict[str, str] = Field(default_factory=dict)        # email_id -> flag_type
     archived: List[str] = Field(default_factory=list)
     deleted: List[str] = Field(default_factory=list)
@@ -132,9 +129,6 @@ class Observation(BaseModel):
     done: bool = False
     total_reward: float = 0.0
 
-    class Config:
-        use_enum_values = True
-
 
 # ---------------------------------------------------------------------------
 # Reward model
@@ -142,13 +136,11 @@ class Observation(BaseModel):
 
 class Reward(BaseModel):
     """Detailed reward breakdown for transparency."""
+    model_config = ConfigDict(use_enum_values=True)
 
     value: float = 0.0
     breakdown: Dict[str, float] = Field(default_factory=dict)
     reason: str = ""
-
-    class Config:
-        use_enum_values = True
 
 
 # ---------------------------------------------------------------------------
@@ -156,17 +148,16 @@ class Reward(BaseModel):
 # ---------------------------------------------------------------------------
 
 class EnvState(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     task_id: str
     step_count: int = 0
     max_steps: int = 50
     done: bool = False
     total_reward: float = 0.0
-    classifications: Dict[str, EmailClassification] = Field(default_factory=dict)
+    classifications: Dict[str, Any] = Field(default_factory=dict)
     flagged: Dict[str, str] = Field(default_factory=dict)
     archived: List[str] = Field(default_factory=list)
     deleted: List[str] = Field(default_factory=list)
     replies: Dict[str, str] = Field(default_factory=dict)
     action_history: List[Dict[str, Any]] = Field(default_factory=list)
-
-    class Config:
-        use_enum_values = True
