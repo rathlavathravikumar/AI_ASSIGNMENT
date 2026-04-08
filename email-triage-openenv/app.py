@@ -104,6 +104,22 @@ async def get_emails(task_id: str):
     return {"task_id": task_id, "emails": [e.dict() for e in TASKS[task_id]["emails"]]}
 
 
+# OpenEnv-spec bare routes (openenv.yaml reset_endpoint/step_endpoint/state_endpoint)
+@api.post("/reset")
+async def openenv_reset(req: ResetRequest):
+    return await reset(req)
+
+
+@api.post("/step")
+async def openenv_step(req: StepRequest):
+    return await step(req)
+
+
+@api.get("/state")
+async def openenv_state():
+    return await get_state()
+
+
 # ---------------------------------------------------------------------------
 # Gradio interactive demo
 # ---------------------------------------------------------------------------
