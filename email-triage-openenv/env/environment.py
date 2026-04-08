@@ -248,11 +248,18 @@ class EmailTriageEnv:
         gt = (self._task_cfg or {}).get("ground_truth", {}).get(eid)
         msg = f"Deleted {eid}."
         if gt:
-            expected = gt.get("action") if isinstance(gt, dict) else getattr(gt, "action", None)
-            if expected == "delete":
+            if isinstance(gt, dict):
+                expected = gt.get("action")
+                gt_cat = gt.get("category", "")
+            else:
+                # EmailClassification object (task_1): infer expected action from category
+                gt_cat = gt.category if isinstance(gt.category, str) else gt.category.value
+                expected = "delete" if gt_cat == "spam" else "flag"
+
+            if expected == "delete" or gt_cat == "spam":
                 r_val = self.REWARD_CORRECT_ACTION
                 msg += " Correct action — spam removed!"
-            elif expected in ("flag", "archive"):
+            elif expected in ("flag", "archive") or gt_cat != "spam":
                 r_val = -0.05  # deleting something important is bad
                 msg += f" WARNING: Expected '{expected}'. Deleting may lose important email."
         return Reward(value=r_val, reason=msg), msg

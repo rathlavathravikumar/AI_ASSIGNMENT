@@ -1,0 +1,3 @@
+streamlit==1.28.1
+pydantic==2.5.0</content>
+<parameter name="filePath">/home/rgukt-basar/email-triage-openenv/env/requirements.txt
